@@ -1,0 +1,193 @@
+// CTA logic
+(() => {
+  const toast = document.getElementById('toast');
+
+  const showToast = (text) => {
+    if (!toast) return;
+    toast.textContent = text;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2400);
+  };
+
+  // Region-aware LINE CTA
+  const btnLine = document.getElementById('btnLine');
+  const btnLine2 = document.getElementById('btnLine2');
+  const headerLineCta = document.getElementById('headerLineCta');
+
+  // Chip groups
+  const chipGroups = Array.from(document.querySelectorAll('.chips'));
+
+  const buildLineUrl = (baseUrl, message) => {
+    if (!baseUrl) return '#';
+    try {
+      const url = new URL(baseUrl);
+      const msg = message || '';
+      // LINE share scheme: append text if supported; fallback to base
+      url.searchParams.set('text', msg);
+      return url.toString();
+    } catch (e) {
+      return baseUrl;
+    }
+  };
+
+  const getFilters = () => {
+    const values = { age: '全部', style: '全部', body: '全部' };
+    chipGroups.forEach((group) => {
+      const type = group.getAttribute('data-filter');
+      const active = group.querySelector('.chip.is-active');
+      if (type && active) values[type] = active.getAttribute('data-value') || '全部';
+    });
+    return { age: values.age, style: values.style, body: values.body };
+  };
+
+  const buildMessage = () => {
+    const f = getFilters();
+    return `偏好｜年齡：${f.age}；風格：${f.style}；身材：${f.body}`;
+  };
+
+  const wireCta = (el) => {
+    if (!el) return;
+    el.addEventListener('click', (e) => {
+      e.preventDefault();
+      const base = el.getAttribute('data-line-url');
+      const href = buildLineUrl(base, buildMessage());
+      // Copy filters hint for user convenience
+      try {
+        navigator.clipboard && navigator.clipboard.writeText(buildMessage());
+        showToast('已複製「偏好」到剪貼簿');
+      } catch {}
+      window.location.href = href;
+    });
+  };
+
+  wireCta(btnLine);
+  wireCta(btnLine2);
+  wireCta(headerLineCta);
+
+  // Image catalog and filtering
+  const heroImages = [
+    './assets/models/model-1.jpg',
+    './assets/models/model-2.jpg',
+    './assets/models/model-3.jpg'
+  ];
+
+  // Map tags to images from static/images/girls
+  const catalog = [
+    { src: 'static/images/girls/a1.jpg',  age: '18-25歲', style: '甜美可愛', body: '苗條',  name: '琪琪', tags: ['口交技巧好','無套內射'] },
+    { src: 'static/images/girls/a2.jpg',  age: '18-25歲', style: '清純優雅', body: '苗條',  name: '安安', tags: ['制服誘惑','後入爽翻'] },
+    { src: 'static/images/girls/a3.jpg',  age: '26-35歲', style: '成熟知性', body: '豐滿',  name: '芷妮', tags: ['乳交爆乳','雙飛可約'] },
+    { src: 'static/images/girls/a4.jpg',  age: '26-35歲', style: '性感妩媚', body: '健美',  name: '艾拉', tags: ['黑絲後入','無套中出'] },
+    { src: 'static/images/girls/a5.jpg',  age: '35歲以上', style: '成熟知性', body: '豐滿',  name: '可欣', tags: ['熟女口交','顏射隨便'] },
+    { src: 'static/images/girls/a6.jpg',  age: '18-25歲', style: '性感妩媚', body: '苗條',  name: '米亞', tags: ['深喉口爆','無套內射'] },
+    { src: 'static/images/girls/a7.jpg',  age: '26-35歲', style: '清純優雅', body: '苗條',  name: '語婕', tags: ['顏射內射','雙飛3P'] },
+    { src: 'static/images/girls/a8.jpg',  age: '35歲以上', style: '清純優雅', body: '健美',  name: '婉蓉', tags: ['瑜珈後入','無套抽插'] },
+    { src: 'static/images/girls/a9.jpg',  age: '18-25歲', style: '甜美可愛', body: '豐滿',  name: '小沫', tags: ['爆乳乳交','無套內射'] },
+    { src: 'static/images/girls/a10.jpg', age: '26-35歲', style: '性感妩媚', body: '豐滿',  name: '沛沛', tags: ['騷浪叫床','口爆吞精'] },
+    { src: 'static/images/girls/a11.jpg', age: '35歲以上', style: '成熟知性', body: '健美',  name: 'Melody', tags: ['人妻偷情','雙飛約起'] },
+    { src: 'static/images/girls/a12.jpg', age: '18-25歲', style: '清純優雅', body: '豐滿',  name: 'Yuki', tags: ['奶大乳交','無套中出'] },
+    { src: 'static/images/girls/a13.jpg', age: '26-35歲', style: '甜美可愛', body: '健美',  name: 'Sasha', tags: ['運動後入','體力超強'] },
+    { src: 'static/images/girls/a14.jpg', age: '35歲以上', style: '性感妩媚', body: '苗條',  name: 'Rita', tags: ['情趣SM','口交顏射'] },
+    { src: 'static/images/girls/a15.jpg', age: '全部',   style: '全部',   body: '全部',   name: 'Nana', tags: ['多P雙飛','隨傳隨到'] }
+  ];
+
+  const matchFilters = (item, f) => {
+    const ageOk = f.age === '全部' || item.age === f.age || item.age === '全部';
+    const styleOk = f.style === '全部' || item.style === f.style || item.style === '全部';
+    const bodyOk = f.body === '全部' || item.body === f.body || item.body === '全部';
+    return ageOk && styleOk && bodyOk;
+  };
+
+  const shuffle = (arr) => arr.slice().sort(() => Math.random() - 0.5);
+  const pickN = (arr, n, excludeSet = new Set()) => {
+    const filtered = arr.filter(it => !excludeSet.has(it.src));
+    return shuffle(filtered).slice(0, n);
+  };
+
+  const refreshImages = () => {
+    const f = getFilters();
+    const filtered = catalog.filter((it) => matchFilters(it, f));
+    const chosen = filtered.length ? filtered : catalog; // fallback
+
+    // Update hero portraits (up to 3)
+    const cardA = document.querySelector('.portrait-card--a');
+    const cardB = document.querySelector('.portrait-card--b');
+    const cardC = document.querySelector('.portrait-card--c');
+    const used = new Set();
+    const top3 = pickN(chosen, 3, used);
+    top3.forEach(it => used.add(it.src));
+    const paintCard = (card, item) => {
+      if (!card || !item) return;
+      const img = card.querySelector('img');
+      const label = card.querySelector('.portrait-label');
+      if (img) img.src = item.src;
+      if (label) label.textContent = `${item.name} · ${item.style}`;
+    };
+    paintCard(cardA, top3[0]);
+    paintCard(cardB, top3[1]);
+    paintCard(cardC, top3[2]);
+
+    // Update gallery slider (6 items)
+    const galleryCards = document.querySelectorAll('.gallery__slider .gallery-card');
+    const top6 = pickN(chosen, Math.min(6, galleryCards.length), used);
+    galleryCards.forEach((card, i) => {
+      const item = top6[i];
+      if (!item) return;
+      const img = card.querySelector('img');
+      const cap = card.querySelector('.gallery-caption');
+      if (img) img.src = item.src;
+      if (cap) cap.textContent = `${item.name} · ${item.tags[0] || item.style}`;
+    });
+  };
+
+  // Chip behavior
+  const onChipClick = (e) => {
+    const btn = e.target.closest('.chip');
+    if (!btn) return;
+    const parent = btn.closest('.chips');
+    if (!parent) return;
+    parent.querySelectorAll('.chip').forEach(c => c.classList.remove('is-active'));
+    btn.classList.add('is-active');
+    refreshImages();
+  };
+  chipGroups.forEach((g) => g.addEventListener('click', onChipClick));
+
+  // Initial render
+  refreshImages();
+
+  // Slider drag interaction
+  const slider = document.getElementById('gallerySlider');
+  if (slider) {
+    let isDown = false;
+    let startX;
+    let scrollLeft;
+
+    slider.addEventListener('mousedown', (e) => {
+      isDown = true;
+      slider.style.cursor = 'grabbing';
+      startX = e.pageX - slider.offsetLeft;
+      scrollLeft = slider.scrollLeft;
+    });
+
+    slider.addEventListener('mouseleave', () => {
+      isDown = false;
+      slider.style.cursor = 'grab';
+    });
+
+    slider.addEventListener('mouseup', () => {
+      isDown = false;
+      slider.style.cursor = 'grab';
+    });
+
+    slider.addEventListener('mousemove', (e) => {
+      if (!isDown) return;
+      e.preventDefault();
+      const x = e.pageX - slider.offsetLeft;
+      const walk = (x - startX) * 1.5;
+      slider.scrollLeft = scrollLeft - walk;
+    });
+
+    slider.style.cursor = 'grab';
+  }
+})();
+
+
